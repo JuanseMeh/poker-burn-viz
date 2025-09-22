@@ -1,14 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VotingSession } from "@/components/VotingSession";
 import { SprintDashboard } from "@/components/SprintDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, BarChart3, Users } from "lucide-react";
+import { Zap, BarChart3, Users, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import dysaiLogo from "@/assets/dysai-logo.png";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("poker");
   const [completedVotes, setCompletedVotes] = useState<number[]>([]);
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   // Mock sprint data
   const sprintStats = {
@@ -32,18 +53,26 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center w-12 h-12 gradient-secondary rounded-xl shadow-magenta">
-                <Zap className="w-6 h-6 text-white" />
+                <img src={dysaiLogo} alt="DYSAI" className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Planning Poker</h1>
+                <h1 className="text-2xl font-bold text-white">DYSAI Planning Poker</h1>
                 <p className="text-white/80 text-sm">Agile estimation made simple</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2">
                 <Users className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">4 active members</span>
+                <span className="text-white text-sm font-medium">Welcome, {user.email}</span>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="text-white hover:bg-white/10"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
