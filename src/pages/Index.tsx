@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { VotingSession } from "@/components/VotingSession";
 import { SprintDashboard } from "@/components/SprintDashboard";
+import { ProjectManager } from "@/components/ProjectManager";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, BarChart3, Users, LogOut } from "lucide-react";
+import { Zap, BarChart3, Users, LogOut, Folder } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import dysaiLogo from "@/assets/dysai-logo.png";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("poker");
+  const [activeTab, setActiveTab] = useState("projects");
   const [completedVotes, setCompletedVotes] = useState<number[]>([]);
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -31,14 +33,19 @@ const Index = () => {
 
   if (!user) return null;
 
-  // Mock sprint data
-  const sprintStats = {
-    totalPoints: 120,
-    completedPoints: 85,
-    remainingPoints: 35,
-    daysRemaining: 4,
-    teamVelocity: 25,
-    sprintGoal: "Implement user authentication and dashboard with responsive design for mobile devices",
+  // Mock story and session data for demo
+  const mockStory = {
+    id: "story-1",
+    title: "User Authentication System",
+    description: "Implement a secure login system with email/password authentication, password reset functionality, and user session management. Include form validation and error handling.",
+    sprint_id: "sprint-1",
+    status: "voting"
+  };
+
+  const mockSession = {
+    id: "session-1",
+    story_id: "story-1",
+    is_active: true
   };
 
   const handleVoteComplete = (averageVote: number) => {
@@ -81,7 +88,14 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-400 mx-auto bg-card shadow-card">
+          <TabsList className="grid w-full grid-cols-3 lg:w-600 mx-auto bg-card shadow-card">
+            <TabsTrigger 
+              value="projects" 
+              className="data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+            >
+              <Folder className="w-4 h-4 mr-2" />
+              Projects
+            </TabsTrigger>
             <TabsTrigger 
               value="poker" 
               className="data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
@@ -98,6 +112,10 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="projects" className="animate-fade-in-up">
+            <ProjectManager />
+          </TabsContent>
+
           <TabsContent value="poker" className="space-y-6 animate-fade-in-up">
             <Card className="shadow-card">
               <CardHeader>
@@ -109,8 +127,8 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <VotingSession
-                  storyTitle="User Authentication System"
-                  storyDescription="Implement a secure login system with email/password authentication, password reset functionality, and user session management. Include form validation and error handling."
+                  story={mockStory}
+                  session={mockSession}
                   onVoteComplete={handleVoteComplete}
                 />
               </CardContent>
@@ -146,7 +164,22 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="dashboard" className="animate-fade-in-up">
-            <SprintDashboard sprintStats={sprintStats} />
+            {selectedSprintId ? (
+              <SprintDashboard sprintId={selectedSprintId} />
+            ) : (
+              <Card className="text-center p-8">
+                <CardContent>
+                  <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Select a Sprint</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Go to Projects tab and select a sprint to view its dashboard
+                  </p>
+                  <Button onClick={() => setActiveTab("projects")} className="gradient-primary">
+                    View Projects
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>

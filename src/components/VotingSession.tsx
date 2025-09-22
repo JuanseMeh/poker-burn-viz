@@ -1,77 +1,179 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlanningPokerCard } from "./PlanningPokerCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RotateCcw, Users, Vote } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
-const POKER_VALUES = [1, 2, 3, 5, 8, 13, 21, "?"];
+const POKER_VALUES = [0, 1, 2, 3, 5, 8, 13, 21, 34];
 
 interface Vote {
   userId: string;
   userName: string;
-  value: string | number;
+  value: number;
+}
+
+interface Story {
+  id: string;
+  title: string;
+  description: string;
+  sprint_id: string;
+  status: string;
+}
+
+interface Session {
+  id: string;
+  story_id: string;
+  is_active: boolean;
 }
 
 interface VotingSessionProps {
-  storyTitle: string;
-  storyDescription: string;
+  story: Story;
+  session: Session | null;
   onVoteComplete: (averageVote: number) => void;
 }
 
 export const VotingSession = ({ 
-  storyTitle, 
-  storyDescription, 
+  story,
+  session,
   onVoteComplete 
 }: VotingSessionProps) => {
-  const [selectedValue, setSelectedValue] = useState<string | number | null>(null);
-  const [votes, setVotes] = useState<Vote[]>([
-    { userId: "1", userName: "Alice", value: 5 },
-    { userId: "2", userName: "Bob", value: 8 },
-    { userId: "3", userName: "Charlie", value: 5 },
-  ]);
+  const { user } = useAuth();
+  const [selectedValue, setSelectedValue] = useState<number | null>(null);
+  const [votes, setVotes] = useState<Vote[]>([]);
+  const [userVote, setUserVote] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [hasVoted, setHasVoted] = useState(false);
 
-  const handleCardClick = (value: string | number) => {
+  useEffect(() => {
+    if (session) {
+      // Subscribe to real-time votes
+      const subscription = supabase
+        .channel(`votes:${session.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'votes',
+            filter: `session_id=eq.${session.id}`
+          },
+          () => {
+            fetchVotes();
+          }
+        )
+        .subscribe();
+
+      fetchVotes();
+      fetchUserVote();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [session, user]);
+
+  const fetchVotes = async () => {
+    if (!session) return;
+    
+    const { data, error } = await supabase
+      .from('votes')
+      .select(`
+        story_points,
+        profiles:user_id (username, full_name)
+      `)
+      .eq('session_id', session.id);
+
+    if (!error) {
+      const formattedVotes = data?.map(vote => ({
+        userId: vote.profiles?.username || 'Unknown',
+        userName: vote.profiles?.full_name || vote.profiles?.username || 'Anonymous',
+        value: vote.story_points
+      })) || [];
+      setVotes(formattedVotes);
+    }
+  };
+
+  const fetchUserVote = async () => {
+    if (!session || !user) return;
+    
+    const { data } = await supabase
+      .from('votes')
+      .select('story_points')
+      .eq('session_id', session.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setUserVote(data?.story_points || null);
+  };
+
+  const handleCardClick = (value: number) => {
     setSelectedValue(value);
   };
 
-  const handleSubmitVote = () => {
-    if (selectedValue !== null) {
-      const newVote: Vote = {
-        userId: "current",
-        userName: "You",
-        value: selectedValue,
-      };
-      setVotes([...votes, newVote]);
-      setHasVoted(true);
+  const handleSubmitVote = async () => {
+    if (selectedValue === null || !session || !user) return;
+
+    const { error } = await supabase.rpc('submit_vote', {
+      session_uuid: session.id,
+      points: selectedValue
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit vote",
+        variant: "destructive",
+      });
+    } else {
+      setUserVote(selectedValue);
+      toast({
+        title: "Vote submitted",
+        description: `You voted ${selectedValue} points`,
+      });
     }
   };
 
   const handleRevealVotes = () => {
     setIsRevealed(true);
-    const numericVotes = votes
-      .filter(vote => typeof vote.value === 'number')
-      .map(vote => vote.value as number);
-    
-    if (numericVotes.length > 0) {
-      const average = numericVotes.reduce((sum, vote) => sum + vote, 0) / numericVotes.length;
-      onVoteComplete(Math.round(average));
+  };
+
+  const handleFinalizeVoting = async () => {
+    if (!session) return;
+
+    const { error } = await supabase.rpc('finalize_voting', {
+      session_uuid: session.id
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to finalize voting",
+        variant: "destructive",
+      });
+    } else {
+      const numericVotes = votes.map(vote => vote.value);
+      if (numericVotes.length > 0) {
+        const average = numericVotes.reduce((sum, vote) => sum + vote, 0) / numericVotes.length;
+        onVoteComplete(Math.round(average));
+      }
+      toast({
+        title: "Voting finalized",
+        description: "Story points have been assigned",
+      });
     }
   };
 
   const handleReset = () => {
     setSelectedValue(null);
-    setVotes(votes.slice(0, 3)); // Keep initial votes
+    setUserVote(null);
     setIsRevealed(false);
-    setHasVoted(false);
   };
 
   const getVoteStats = () => {
-    const numericVotes = votes
-      .filter(vote => typeof vote.value === 'number')
-      .map(vote => vote.value as number);
+    const numericVotes = votes.map(vote => vote.value);
     
     if (numericVotes.length === 0) return { min: 0, max: 0, avg: 0 };
     
@@ -84,17 +186,25 @@ export const VotingSession = ({
 
   const stats = getVoteStats();
 
+  if (!session) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-muted-foreground">No active voting session</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Story Info */}
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="gradient-primary bg-clip-text text-transparent">
-            {storyTitle}
+            {story.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{storyDescription}</p>
+          <p className="text-muted-foreground">{story.description}</p>
         </CardContent>
       </Card>
 
@@ -124,14 +234,14 @@ export const VotingSession = ({
                 value={value}
                 isSelected={selectedValue === value}
                 onClick={() => handleCardClick(value)}
-                disabled={hasVoted}
+                disabled={userVote !== null}
               />
             </div>
           ))}
         </div>
 
         <div className="flex gap-3 justify-center">
-          {!hasVoted && selectedValue !== null && (
+          {userVote === null && selectedValue !== null && (
             <Button 
               onClick={handleSubmitVote}
               className="gradient-primary shadow-purple"
@@ -141,13 +251,23 @@ export const VotingSession = ({
             </Button>
           )}
           
-          {hasVoted && !isRevealed && (
+          {userVote !== null && !isRevealed && votes.length > 0 && (
             <Button 
               onClick={handleRevealVotes}
               variant="gradient"
               size="lg"
             >
               Reveal Votes
+            </Button>
+          )}
+          
+          {isRevealed && (
+            <Button 
+              onClick={handleFinalizeVoting}
+              className="gradient-secondary"
+              size="lg"
+            >
+              Finalize ({votes.reduce((acc, vote) => acc + vote.value, 0)} points)
             </Button>
           )}
           

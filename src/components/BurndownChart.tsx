@@ -6,12 +6,53 @@ interface BurndownData {
   actual: number;
 }
 
+interface ProgressData {
+  date: string;
+  remaining_story_points: number;
+  completed_story_points: number;
+}
+
+interface Sprint {
+  start_date: string;
+  end_date: string;
+}
+
+interface Story {
+  story_points: number;
+}
+
 interface BurndownChartProps {
-  data: BurndownData[];
+  progressData: ProgressData[];
+  sprint: Sprint;
+  stories: Story[];
   className?: string;
 }
 
-export const BurndownChart = ({ data, className }: BurndownChartProps) => {
+export const BurndownChart = ({ progressData, sprint, stories, className }: BurndownChartProps) => {
+  const totalPoints = stories.reduce((sum, story) => sum + (story.story_points || 0), 0);
+  
+  // Generate ideal burn-down line
+  const generateIdealLine = () => {
+    const days = getDaysBetween(sprint.start_date, sprint.end_date);
+    return days.map((day, index) => ({
+      day: day.toLocaleDateString(),
+      ideal: totalPoints - (totalPoints / (days.length - 1)) * index
+    }));
+  };
+
+  const idealData = generateIdealLine();
+  
+  // Combine ideal and actual data
+  const chartData = idealData.map(ideal => {
+    const actual = progressData.find(p => 
+      new Date(p.date).toLocaleDateString() === ideal.day
+    );
+    return {
+      day: ideal.day,
+      ideal: ideal.ideal,
+      actual: actual ? actual.remaining_story_points : null
+    };
+  });
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -32,7 +73,7 @@ export const BurndownChart = ({ data, className }: BurndownChartProps) => {
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid 
             strokeDasharray="3 3" 
             stroke="hsl(var(--chart-grid))" 
@@ -74,3 +115,16 @@ export const BurndownChart = ({ data, className }: BurndownChartProps) => {
     </div>
   );
 };
+
+function getDaysBetween(startDate: string, endDate: string): Date[] {
+  const days: Date[] = [];
+  const current = new Date(startDate);
+  const end = new Date(endDate);
+  
+  while (current <= end) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return days;
+}
