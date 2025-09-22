@@ -46,6 +46,22 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          hover: "hsl(var(--card-hover))",
+          active: "hsl(var(--card-active))",
+          selected: "hsl(var(--card-selected))",
+        },
+        purple: {
+          primary: "hsl(var(--purple-primary))",
+          secondary: "hsl(var(--purple-secondary))",
+        },
+        magenta: {
+          primary: "hsl(var(--magenta-primary))",
+          secondary: "hsl(var(--magenta-secondary))",
+        },
+        chart: {
+          line: "hsl(var(--chart-line))",
+          fill: "hsl(var(--chart-fill))",
+          grid: "hsl(var(--chart-grid))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
