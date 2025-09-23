@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Zap, BarChart3, Users, LogOut, Folder } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import dysaiLogo from "@/assets/dysai-logo-white-bg.png";
+import dysaiLogo from "@/assets/dysai-logo.png";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("projects");
@@ -59,7 +59,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-12 h-12 gradient-secondary rounded-xl shadow-magenta">
+              <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-magenta p-1">
                 <img src={dysaiLogo} alt="DYSAI" className="w-8 h-8" />
               </div>
               <div>
