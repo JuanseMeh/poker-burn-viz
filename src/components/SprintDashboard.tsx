@@ -74,8 +74,8 @@ export const SprintDashboard = ({ sprintId }: SprintDashboardProps) => {
   const fetchSprintData = async () => {
     try {
       const [{ data: sprintData }, { data: storiesData }] = await Promise.all([
-        supabase.from('sprints').select('*').eq('id', sprintId).single(),
-        supabase.from('stories').select('*').eq('sprint_id', sprintId).order('position')
+        (supabase as any).from('sprints').select('*').eq('id', sprintId).single(),
+        (supabase as any).from('stories').select('*').eq('sprint_id', sprintId).order('position')
       ]);
 
       setSprint(sprintData);
@@ -93,7 +93,7 @@ export const SprintDashboard = ({ sprintId }: SprintDashboardProps) => {
 
   const fetchProgressData = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('daily_progress')
         .select('*')
         .eq('sprint_id', sprintId)
@@ -107,7 +107,7 @@ export const SprintDashboard = ({ sprintId }: SprintDashboardProps) => {
 
   const updateBurnDownData = async () => {
     try {
-      await supabase.rpc('update_burn_down_data', { sprint_uuid: sprintId });
+      await (supabase as any).rpc('update_burn_down_data', { sprint_uuid: sprintId });
       fetchProgressData();
     } catch (error) {
       console.error('Failed to update burn down data:', error);

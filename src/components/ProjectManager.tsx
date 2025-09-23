@@ -57,7 +57,7 @@ export function ProjectManager() {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .select(`
           *,
@@ -83,7 +83,7 @@ export function ProjectManager() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .insert([{
           name: projectData.name,
@@ -96,11 +96,13 @@ export function ProjectManager() {
       if (error) throw error;
 
       // Add creator as project member
-      await supabase.from('project_members').insert([{
-        project_id: data.id,
-        user_id: user.id,
-        role: 'owner'
-      }]);
+      if (data) {
+        await (supabase as any).from('project_members').insert([{
+          project_id: data.id,
+          user_id: user.id,
+          role: 'owner'
+        }]);
+      }
       
       fetchProjects();
       setShowCreateProject(false);
@@ -180,7 +182,7 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: () => 
 
   const createSprint = async (sprintData: SprintFormData) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sprints')
         .insert([{
           ...sprintData,

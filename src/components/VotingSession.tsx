@@ -78,7 +78,7 @@ export const VotingSession = ({
   const fetchVotes = async () => {
     if (!session) return;
     
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('votes')
       .select(`
         story_points,
@@ -86,12 +86,12 @@ export const VotingSession = ({
       `)
       .eq('session_id', session.id);
 
-    if (!error) {
-      const formattedVotes = data?.map(vote => ({
+    if (!error && data) {
+      const formattedVotes = data.map((vote: any) => ({
         userId: vote.profiles?.username || 'Unknown',
         userName: vote.profiles?.full_name || vote.profiles?.username || 'Anonymous',
         value: vote.story_points
-      })) || [];
+      }));
       setVotes(formattedVotes);
     }
   };
@@ -99,7 +99,7 @@ export const VotingSession = ({
   const fetchUserVote = async () => {
     if (!session || !user) return;
     
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('votes')
       .select('story_points')
       .eq('session_id', session.id)
@@ -116,7 +116,7 @@ export const VotingSession = ({
   const handleSubmitVote = async () => {
     if (selectedValue === null || !session || !user) return;
 
-    const { error } = await supabase.rpc('submit_vote', {
+    const { error } = await (supabase as any).rpc('submit_vote', {
       session_uuid: session.id,
       points: selectedValue
     });
@@ -143,7 +143,7 @@ export const VotingSession = ({
   const handleFinalizeVoting = async () => {
     if (!session) return;
 
-    const { error } = await supabase.rpc('finalize_voting', {
+    const { error } = await (supabase as any).rpc('finalize_voting', {
       session_uuid: session.id
     });
 
@@ -297,7 +297,7 @@ export const VotingSession = ({
                   {votes.map((vote, index) => (
                     <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
                       <span className="font-medium">{vote.userName}</span>
-                      <Badge variant={vote.value === "?" ? "secondary" : "default"}>
+                      <Badge variant="default">
                         {vote.value}
                       </Badge>
                     </div>

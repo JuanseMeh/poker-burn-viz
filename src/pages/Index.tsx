@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Zap, BarChart3, Users, LogOut, Folder } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import dysaiLogo from "@/assets/dysai-logo.png";
+import dysaiLogo from "@/assets/dysai-logo-white-bg.png";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("projects");
