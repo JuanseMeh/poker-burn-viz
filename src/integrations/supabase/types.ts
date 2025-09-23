@@ -14,13 +14,297 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_progress: {
+        Row: {
+          completed_story_points: number | null
+          date: string
+          id: string
+          remaining_story_points: number
+          sprint_id: string
+        }
+        Insert: {
+          completed_story_points?: number | null
+          date: string
+          id?: string
+          remaining_story_points: number
+          sprint_id: string
+        }
+        Update: {
+          completed_story_points?: number | null
+          date?: string
+          id?: string
+          remaining_story_points?: number
+          sprint_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_progress_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poker_sessions: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          story_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          story_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poker_sessions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      project_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          project_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          project_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          project_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sprints: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          goal: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          project_id: string
+          start_date: string
+          total_story_points: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          goal?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          project_id: string
+          start_date: string
+          total_story_points?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          goal?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          project_id?: string
+          start_date?: string
+          total_story_points?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sprints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          position: number | null
+          sprint_id: string
+          status: string | null
+          story_points: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          position?: number | null
+          sprint_id: string
+          status?: string | null
+          story_points?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          position?: number | null
+          sprint_id?: string
+          status?: string | null
+          story_points?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          session_id: string
+          story_points: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          session_id: string
+          story_points: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          story_points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "poker_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      finalize_voting: {
+        Args: { session_uuid: string }
+        Returns: undefined
+      }
+      start_poker_session: {
+        Args: { story_uuid: string }
+        Returns: string
+      }
+      submit_vote: {
+        Args: { points: number; session_uuid: string }
+        Returns: undefined
+      }
+      update_burn_down_data: {
+        Args: { sprint_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
