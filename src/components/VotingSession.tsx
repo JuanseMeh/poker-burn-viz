@@ -47,36 +47,52 @@ export const VotingSession = ({
   const [userVote, setUserVote] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
 
+  // Helper to detect demo mode (when session.id is not a valid UUID)
+  const isValidUUID = (v: string) =>
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(v);
+  const demoMode = !!session && !isValidUUID(session.id);
+
   useEffect(() => {
-    if (session) {
-      // Subscribe to real-time votes
-      const subscription = supabase
-        .channel(`votes:${session.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'votes',
-            filter: `session_id=eq.${session.id}`
-          },
-          () => {
-            fetchVotes();
-          }
-        )
-        .subscribe();
+    if (!session) return;
 
-      fetchVotes();
-      fetchUserVote();
-
-      return () => {
-        subscription.unsubscribe();
-      };
+    if (demoMode) {
+      // Seed some placeholder votes in demo mode
+      setVotes([
+        { userId: 'u1', userName: 'Alice', value: 3 },
+        { userId: 'u2', userName: 'Bob', value: 5 },
+      ]);
+      setUserVote(null);
+      setIsRevealed(false);
+      return;
     }
+
+    // Subscribe to real-time votes only when not in demo mode
+    const subscription = supabase
+      .channel(`votes:${session.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'votes',
+          filter: `session_id=eq.${session.id}`
+        },
+        () => {
+          fetchVotes();
+        }
+      )
+      .subscribe();
+
+    fetchVotes();
+    fetchUserVote();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [session, user]);
 
   const fetchVotes = async () => {
-    if (!session) return;
+    if (!session || demoMode) return;
     
     try {
       const { data: votesData, error } = await supabase
@@ -113,7 +129,7 @@ export const VotingSession = ({
   };
 
   const fetchUserVote = async () => {
-    if (!session || !user) return;
+    if (!session || !user || demoMode) return;
     
     try {
       const { data, error } = await supabase
@@ -139,6 +155,19 @@ export const VotingSession = ({
 
   const handleSubmitVote = async () => {
     if (selectedValue === null || !session || !user) return;
+
+    if (demoMode) {
+      setUserVote(selectedValue);
+      setVotes(prev => {
+        const withoutUser = prev.filter(v => v.userId !== user.id);
+        return [...withoutUser, { userId: user.id, userName: user.email || 'You', value: selectedValue }];
+      });
+      toast({
+        title: "Vote submitted (demo)",
+        description: `You voted ${selectedValue} points`,
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.rpc('submit_vote', {
@@ -169,6 +198,20 @@ export const VotingSession = ({
 
   const handleFinalizeVoting = async () => {
     if (!session) return;
+
+    // Demo mode: compute locally without backend
+    if (demoMode) {
+      const numericVotes = votes.map(vote => vote.value);
+      if (numericVotes.length > 0) {
+        const average = numericVotes.reduce((sum, vote) => sum + vote, 0) / numericVotes.length;
+        onVoteComplete(Math.round(average));
+      }
+      toast({
+        title: "Voting finalized (demo)",
+        description: "Story points calculated locally",
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.rpc('finalize_voting', {
@@ -245,10 +288,15 @@ export const VotingSession = ({
             <Vote className="w-5 h-5 text-primary" />
             Choose Your Estimate
           </h3>
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            {votes.length} {votes.length === 1 ? 'vote' : 'votes'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {demoMode && (
+              <Badge variant="outline">Demo Preview</Badge>
+            )}
+            <Badge variant="secondary" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              {votes.length} {votes.length === 1 ? 'vote' : 'votes'}
+            </Badge>
+          </div>
         </div>
         
         <div className="grid grid-cols-4 md:grid-cols-8 gap-4">

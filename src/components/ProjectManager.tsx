@@ -173,18 +173,55 @@ export function ProjectManager() {
       </div>
 
       {projects.length === 0 ? (
-        <Card className="text-center p-8">
-          <CardContent>
-            <Target className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first project to start planning poker sessions
-            </p>
-            <Button onClick={() => setShowCreateProject(true)} className="gradient-primary">
-              Create Project
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="text-center p-8">
+            <CardContent>
+              <Target className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Create your first project to start planning poker sessions
+              </p>
+              <Button onClick={() => setShowCreateProject(true)} className="gradient-primary">
+                Create Project
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Example Preview */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="gradient-primary bg-clip-text text-transparent">Example Project</span>
+                <Badge variant="secondary">
+                  <Users className="w-3 h-3 mr-1" />
+                  3
+                </Badge>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">This is how a project with sprints will look.</p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between p-2 bg-muted rounded text-xs">
+                <div>
+                  <span className="font-medium">Sprint 12</span>
+                  <Badge variant="default" className="ml-2 text-xs">Active</Badge>
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  9/18/2025
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-muted rounded text-xs">
+                <div>
+                  <span className="font-medium">Sprint 11</span>
+                </div>
+                <div className="flex items-center text-muted-foreground">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  9/04/2025
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
