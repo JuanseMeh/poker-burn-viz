@@ -78,35 +78,59 @@ export const VotingSession = ({
   const fetchVotes = async () => {
     if (!session) return;
     
-    const { data, error } = await (supabase as any)
-      .from('votes')
-      .select(`
-        story_points,
-        profiles:user_id (username, full_name)
-      `)
-      .eq('session_id', session.id);
+    try {
+      const { data: votesData, error } = await supabase
+        .from('votes')
+        .select('story_points, user_id')
+        .eq('session_id', session.id);
 
-    if (!error && data) {
-      const formattedVotes = data.map((vote: any) => ({
-        userId: vote.profiles?.username || 'Unknown',
-        userName: vote.profiles?.full_name || vote.profiles?.username || 'Anonymous',
-        value: vote.story_points
-      }));
-      setVotes(formattedVotes);
+      if (error) throw error;
+
+      if (votesData && votesData.length > 0) {
+        // Get profile data for each vote
+        const votesWithProfiles = await Promise.all(
+          votesData.map(async (vote) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, full_name')
+              .eq('id', vote.user_id)
+              .maybeSingle();
+            
+            return {
+              userId: vote.user_id,
+              userName: profile?.full_name || profile?.username || 'Anonymous',
+              value: vote.story_points
+            };
+          })
+        );
+        setVotes(votesWithProfiles);
+      } else {
+        setVotes([]);
+      }
+    } catch (error) {
+      console.error('Error fetching votes:', error);
     }
   };
 
   const fetchUserVote = async () => {
     if (!session || !user) return;
     
-    const { data } = await (supabase as any)
-      .from('votes')
-      .select('story_points')
-      .eq('session_id', session.id)
-      .eq('user_id', user.id)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('votes')
+        .select('story_points')
+        .eq('session_id', session.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    setUserVote(data?.story_points || null);
+      if (error) {
+        console.error('Error fetching user vote:', error);
+      } else {
+        setUserVote(data?.story_points || null);
+      }
+    } catch (error) {
+      console.error('Error fetching user vote:', error);
+    }
   };
 
   const handleCardClick = (value: number) => {
@@ -116,22 +140,25 @@ export const VotingSession = ({
   const handleSubmitVote = async () => {
     if (selectedValue === null || !session || !user) return;
 
-    const { error } = await (supabase as any).rpc('submit_vote', {
-      session_uuid: session.id,
-      points: selectedValue
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit vote",
-        variant: "destructive",
+    try {
+      const { error } = await supabase.rpc('submit_vote', {
+        session_uuid: session.id,
+        points: selectedValue
       });
-    } else {
+
+      if (error) throw error;
+
       setUserVote(selectedValue);
       toast({
         title: "Vote submitted",
         description: `You voted ${selectedValue} points`,
+      });
+    } catch (error) {
+      console.error('Submit vote error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit vote",
+        variant: "destructive",
       });
     }
   };
@@ -143,17 +170,13 @@ export const VotingSession = ({
   const handleFinalizeVoting = async () => {
     if (!session) return;
 
-    const { error } = await (supabase as any).rpc('finalize_voting', {
-      session_uuid: session.id
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to finalize voting",
-        variant: "destructive",
+    try {
+      const { error } = await supabase.rpc('finalize_voting', {
+        session_uuid: session.id
       });
-    } else {
+
+      if (error) throw error;
+
       const numericVotes = votes.map(vote => vote.value);
       if (numericVotes.length > 0) {
         const average = numericVotes.reduce((sum, vote) => sum + vote, 0) / numericVotes.length;
@@ -162,6 +185,13 @@ export const VotingSession = ({
       toast({
         title: "Voting finalized",
         description: "Story points have been assigned",
+      });
+    } catch (error) {
+      console.error('Finalize voting error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to finalize voting",
+        variant: "destructive",
       });
     }
   };

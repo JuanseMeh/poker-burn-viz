@@ -57,18 +57,34 @@ export function ProjectManager() {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('projects')
-        .select(`
-          *,
-          project_members (user_id, role),
-          sprints (*)
-        `)
-        .order('created_at', { ascending: false });
+      // First get projects where user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from('project_members')
+        .select('project_id')
+        .eq('user_id', user?.id);
 
-      if (error) throw error;
-      setProjects(data || []);
+      if (memberError) throw memberError;
+
+      if (memberData && memberData.length > 0) {
+        const projectIds = memberData.map(member => member.project_id);
+        
+        const { data, error } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            project_members (user_id, role),
+            sprints (*)
+          `)
+          .in('id', projectIds)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setProjects(data || []);
+      } else {
+        setProjects([]);
+      }
     } catch (error) {
+      console.error('Fetch projects error:', error);
       toast({
         title: "Error",
         description: "Failed to fetch projects",
@@ -83,7 +99,7 @@ export function ProjectManager() {
     if (!user) return;
 
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .insert([{
           name: projectData.name,
@@ -97,11 +113,17 @@ export function ProjectManager() {
 
       // Add creator as project member
       if (data) {
-        await (supabase as any).from('project_members').insert([{
-          project_id: data.id,
-          user_id: user.id,
-          role: 'owner'
-        }]);
+        const { error: memberError } = await supabase
+          .from('project_members')
+          .insert([{
+            project_id: data.id,
+            user_id: user.id,
+            role: 'owner'
+          }]);
+        
+        if (memberError) {
+          console.error('Error adding project member:', memberError);
+        }
       }
       
       fetchProjects();
@@ -111,6 +133,7 @@ export function ProjectManager() {
         description: "Project created successfully",
       });
     } catch (error) {
+      console.error('Create project error:', error);
       toast({
         title: "Error",
         description: "Failed to create project",
@@ -182,7 +205,7 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: () => 
 
   const createSprint = async (sprintData: SprintFormData) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sprints')
         .insert([{
           ...sprintData,
@@ -198,6 +221,7 @@ function ProjectCard({ project, onUpdate }: { project: Project; onUpdate: () => 
         description: "Sprint created successfully",
       });
     } catch (error) {
+      console.error('Create sprint error:', error);
       toast({
         title: "Error",
         description: "Failed to create sprint",
